@@ -23,13 +23,13 @@ import React, { createContext, ReactNode, RefObject, useContext, useEffect, useR
 import MapEventEmitterService, { IMapServiceProvider } from '@/app/services/mapeventemitter.service'
 import GoogleMapService from '@/app/services/googlemap.service'
 import { GOOGLE_MAPS_API_KEY } from '@/constants'
+import { unknown } from 'zod'
 
 interface IContextProps {
-  mapRef: any
-  serviceProvider: any
+  mapServiceProvider: any
 
 }
-export const MapContext = createContext<IContextProps>({ mapRef:undefined, serviceProvider:undefined })
+export const MapContext = createContext<IContextProps>({ mapServiceProvider:undefined })
 
 interface IProps<T> {
   children:ReactNode
@@ -40,14 +40,13 @@ interface IProps<T> {
 }
 export const MapProvider = <T extends unknown> (props:IProps<T>) => {
   const [mapRef, setMapRef] = useState<React.RefObject<T>>(useRef<T>(null));
-  const googleMapServiceProvider = new GoogleMapService(GOOGLE_MAPS_API_KEY!);
 
-  const serviceProvider = new MapEventEmitterService<T>(googleMapServiceProvider as unknown as IMapServiceProvider<T>);
+  const mapServiceProvider = new MapEventEmitterService<T>(props.mapService as unknown as IMapServiceProvider<T>);
 
   useEffect(() => {
     const initializeMap = async () => {
 
-      const map = await serviceProvider.loadMap(props.mapDOMID);
+      const map = await mapServiceProvider.initMap(props.mapDOMID);
       setMapRef(() => (map as unknown) as React.RefObject<T>);
     };
     initializeMap();
@@ -56,13 +55,13 @@ export const MapProvider = <T extends unknown> (props:IProps<T>) => {
   if(!mapRef) return null;
 
   return (
-    <MapContext.Provider value={{ mapRef, serviceProvider }}>
+    <MapContext.Provider value={{ mapServiceProvider }}>
       {props.children}
     </MapContext.Provider>
   );
 }
 
-export const useMap = () => {
-  const { mapRef, serviceProvider } = useContext(MapContext)
-  return { mapRef, serviceProvider }
+export const useMap = <T extends unknown > (): MapEventEmitterService<T> => {
+  const { mapServiceProvider } = useContext(MapContext)
+  return mapServiceProvider
 }
